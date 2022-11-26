@@ -131,18 +131,26 @@ class GDrive(object):
                         print(e)
       
     def clear_drive(self):
-        results = self.service.files().list( 
-                    spaces='drive',
-                    fields='files(id, name)').execute(num_retries=NUM_TRIES)
-        for file in results.get('files', []):
-            name = file.get('name')
-            id = file.get('id')
-            if name != GDRIVE_ROOT:
-                print('Deleting name: ' + name + ' id: ' + id)
-                try:
-                    self.service.files().delete(fileId=id).execute()
-                except:
-                    print('error')
+        page_token = None
+
+        while True:
+            results = self.service.files().list(
+                        pageSize=1000, 
+                        spaces='drive',
+                        fields="nextPageToken, files(id, name)",
+                        pageToken=page_token).execute(num_retries=NUM_TRIES)
+            for file in results.get('files', []):
+                name = file.get('name')
+                id = file.get('id')
+                if name != GDRIVE_ROOT:
+                    print('Deleting name: ' + name + ' id: ' + id)
+                    try:
+                        self.service.files().delete(fileId=id).execute()
+                    except:
+                        print('error')
+            page_token = results.get('nextPageToken', None)
+            if page_token is None:
+                break
 
 if __name__ == '__main__':
     gdrive = GDrive()
